@@ -3,7 +3,7 @@
 #   Install only production node_modules. This layer is cached separately so
 #   rebuilds caused by code changes don't re-download npm packages.
 # ─────────────────────────────────────────────────────────────────────────────
-FROM mcr.microsoft.com/playwright:v1.44.0-jammy AS deps
+FROM mcr.microsoft.com/playwright:v1.60.0-jammy AS deps
 
 WORKDIR /app
 COPY package*.json ./
@@ -14,7 +14,7 @@ RUN npm install
 #   The Playwright base image already ships Chromium + all system libs.
 #   We just copy in our code and assets on top.
 # ─────────────────────────────────────────────────────────────────────────────
-FROM mcr.microsoft.com/playwright:v1.44.0-jammy
+FROM mcr.microsoft.com/playwright:v1.60.0-jammy
 
 WORKDIR /app
 
