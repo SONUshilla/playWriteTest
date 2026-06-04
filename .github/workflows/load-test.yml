@@ -17,7 +17,7 @@ on:
         default: '1'
         type: string
       scale_containers:
-        description: 'Number of container instances to scale'
+        description: 'Number of container instances to scale (per server)'
         required: true
         default: '2'
         type: string
@@ -50,6 +50,15 @@ on:
 jobs:
   run-load-test:
     runs-on: ubuntu-latest
+    
+    # ── THE MATRIX STRATEGY ────────────────────────────────────────────────
+    strategy:
+      # fail-fast: false ensures that if one of the 20 servers crashes, 
+      # the other 19 keep running the load test instead of cancelling.
+      fail-fast: false 
+      matrix:
+        # This array tells GitHub to launch 20 exact clones of this job simultaneously.
+        server_instance: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
 
     steps:
       - name: Checkout repository
@@ -75,6 +84,7 @@ jobs:
         run: docker compose build
 
       - name: Run Load Test (Scaled)
+        # The scale_containers input defines how many containers run ON EACH of the 20 servers.
         run: |
           docker compose up --scale student-worker=${{ inputs.scale_containers }} --abort-on-container-exit
 
