@@ -1,0 +1,70 @@
+version: "3.9"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Usage:
+#
+#   # Run 10 parallel student workers:
+#   docker compose up --scale student-worker=10
+#
+#   # Run 50 workers (detached):
+#   docker compose up -d --scale student-worker=50
+#
+#   # Watch live logs:
+#   docker compose logs -f
+#
+#   # Stop everything and clean up:
+#   docker compose down
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+  student-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    # ── Resource limits (tune per your machine) ──────────────────────────────
+    # Each Chromium instance uses ~300-500 MB RAM.
+    # Rule of thumb: set mem_limit to (available_RAM / NUM_WORKERS) * 0.8
+    deploy:
+      resources:
+        limits:
+          memory: 1g        # max RAM per container
+          cpus: "1.0"       # max CPU per container
+
+    # Chrome needs more /dev/shm than the Docker default (64 MB)
+    shm_size: "512mb"
+
+    # Needed for Chrome's process sandboxing inside Docker
+    cap_add:
+      - SYS_ADMIN
+
+    # ── All config via env vars ───────────────────────────────────────────────
+    environment:
+      # Required — override these or put them in a .env file next to this file
+      - BASE_URL=${BASE_URL:-http://host.docker.internal:5173}
+      - API_BASE_URL=${API_BASE_URL:-http://host.docker.internal:5173/api}
+      - TEMPLATE_ID=${TEMPLATE_ID:-incidents-disabled}
+
+      # Scale
+      - NUM_WORKERS=${NUM_WORKERS:-1}        # workers THIS container will run
+      - CONCURRENCY=${CONCURRENCY:-1}
+      - STAGGER_TIME_MS=${STAGGER_TIME_MS:-8000}
+
+      # Timing
+      - WAITING_TIME=${WAITING_TIME:-600000}
+
+      # Steps
+      - RUN_PHOTO_CAPTURE=${RUN_PHOTO_CAPTURE:-false}
+      - RUN_ID_VERIFICATION=${RUN_ID_VERIFICATION:-false}
+      - RUN_MOBILE_RECORDING=${RUN_MOBILE_RECORDING:-false}
+      - RUN_ROOM_SCAN=${RUN_ROOM_SCAN:-false}
+
+      # Always headless in Docker
+      - HEADED=false
+
+    # Retry on crash, but not endlessly
+    restart: on-failure
+    deploy:
+      restart_policy:
+        condition: on-failure
+        max_attempts: 2

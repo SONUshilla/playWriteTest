@@ -1,0 +1,52 @@
+name: Mediasoup Proctoring Load Test
+
+on:
+  workflow_dispatch:
+    inputs:
+      num_workers:
+        description: 'Number of workers per container'
+        required: true
+        default: '1'
+      scale_containers:
+        description: 'Number of container instances to scale'
+        required: true
+        default: '2'
+      template_id:
+        description: 'Exam Template ID'
+        required: true
+        default: 'incidents-disabled'
+
+jobs:
+  run-load-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Create .env file from GitHub Secrets & Inputs
+        run: |
+          echo "BASE_URL=${{ secrets.BASE_URL }}" >> .env
+          echo "API_BASE_URL=${{ secrets.API_BASE_URL }}" >> .env
+          echo "TEMPLATE_ID=${{ github.event.inputs.template_id }}" >> .env
+          echo "NUM_WORKERS=${{ github.event.inputs.num_workers }}" >> .env
+          echo "CONCURRENCY=${{ github.event.inputs.num_workers }}" >> .env
+          echo "WAITING_TIME=600000" >> .env
+          echo "RUN_PHOTO_CAPTURE=false" >> .env
+          echo "RUN_ID_VERIFICATION=false" >> .env
+          echo "RUN_MOBILE_RECORDING=false" >> .env
+          echo "RUN_ROOM_SCAN=false" >> .env
+
+      - name: Build Docker Compose services
+        run: docker compose build
+
+      - name: Run Load Test (Scaled)
+        run: |
+          docker compose up --scale student-worker=${{ github.event.inputs.scale_containers }} --abort-on-container-exit
+
+      - name: View Container Logs on Failure
+        if: failure()
+        run: docker compose logs --tail="all"
