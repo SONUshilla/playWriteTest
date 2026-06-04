@@ -7,7 +7,7 @@ FROM mcr.microsoft.com/playwright:v1.44.0-jammy AS deps
 
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci --omit=dev
+RUN npm install
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Stage 2 — runner  (final image)

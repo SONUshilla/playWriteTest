@@ -3,18 +3,49 @@ name: Mediasoup Proctoring Load Test
 on:
   workflow_dispatch:
     inputs:
+      base_url:
+        description: 'Target BASE_URL (e.g., https://your-app.com)'
+        required: true
+        type: string
+      api_base_url:
+        description: 'Target API_BASE_URL (e.g., https://your-app.com/api)'
+        required: true
+        type: string
       num_workers:
         description: 'Number of workers per container'
         required: true
         default: '1'
+        type: string
       scale_containers:
         description: 'Number of container instances to scale'
         required: true
         default: '2'
+        type: string
       template_id:
         description: 'Exam Template ID'
         required: true
         default: 'incidents-disabled'
+        type: string
+      run_photo_capture:
+        description: 'Enable Photo Capture step'
+        required: true
+        type: boolean
+        default: false
+      run_id_verification:
+        description: 'Enable ID Verification step'
+        required: true
+        type: boolean
+        default: false
+      run_mobile_recording:
+        description: 'Enable Mobile Recording step'
+        required: true
+        type: boolean
+        default: false
+      run_room_scan:
+        description: 'Enable Room Scan step'
+        required: true
+        type: boolean
+        default: false
 
 jobs:
   run-load-test:
@@ -27,25 +58,25 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Create .env file from GitHub Secrets & Inputs
+      - name: Create .env file from GitHub Inputs
         run: |
-          echo "BASE_URL=${{ secrets.BASE_URL }}" >> .env
-          echo "API_BASE_URL=${{ secrets.API_BASE_URL }}" >> .env
-          echo "TEMPLATE_ID=${{ github.event.inputs.template_id }}" >> .env
-          echo "NUM_WORKERS=${{ github.event.inputs.num_workers }}" >> .env
-          echo "CONCURRENCY=${{ github.event.inputs.num_workers }}" >> .env
+          echo "BASE_URL=${{ inputs.base_url }}" >> .env
+          echo "API_BASE_URL=${{ inputs.api_base_url }}" >> .env
+          echo "TEMPLATE_ID=${{ inputs.template_id }}" >> .env
+          echo "NUM_WORKERS=${{ inputs.num_workers }}" >> .env
+          echo "CONCURRENCY=${{ inputs.num_workers }}" >> .env
           echo "WAITING_TIME=600000" >> .env
-          echo "RUN_PHOTO_CAPTURE=false" >> .env
-          echo "RUN_ID_VERIFICATION=false" >> .env
-          echo "RUN_MOBILE_RECORDING=false" >> .env
-          echo "RUN_ROOM_SCAN=false" >> .env
+          echo "RUN_PHOTO_CAPTURE=${{ inputs.run_photo_capture }}" >> .env
+          echo "RUN_ID_VERIFICATION=${{ inputs.run_id_verification }}" >> .env
+          echo "RUN_MOBILE_RECORDING=${{ inputs.run_mobile_recording }}" >> .env
+          echo "RUN_ROOM_SCAN=${{ inputs.run_room_scan }}" >> .env
 
       - name: Build Docker Compose services
         run: docker compose build
 
       - name: Run Load Test (Scaled)
         run: |
-          docker compose up --scale student-worker=${{ github.event.inputs.scale_containers }} --abort-on-container-exit
+          docker compose up --scale student-worker=${{ inputs.scale_containers }} --abort-on-container-exit
 
       - name: View Container Logs on Failure
         if: failure()
