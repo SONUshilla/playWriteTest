@@ -22,14 +22,15 @@ services:
       context: .
       dockerfile: Dockerfile
 
-    # ── Resource limits (tune per your machine) ──────────────────────────────
-    # Each Chromium instance uses ~300-500 MB RAM.
-    # Rule of thumb: set mem_limit to (available_RAM / NUM_WORKERS) * 0.8
+    # ── Deploy Configuration (Resources & Restart Policy) ────────────────────
     deploy:
       resources:
         limits:
           memory: 1g        # max RAM per container
           cpus: "1.0"       # max CPU per container
+      restart_policy:
+        condition: on-failure
+        max_attempts: 2
 
     # Chrome needs more /dev/shm than the Docker default (64 MB)
     shm_size: "512mb"
@@ -62,9 +63,5 @@ services:
       # Always headless in Docker
       - HEADED=false
 
-    # Retry on crash, but not endlessly
+    # Retry on crash (legacy compose compatibility)
     restart: on-failure
-    deploy:
-      restart_policy:
-        condition: on-failure
-        max_attempts: 2
